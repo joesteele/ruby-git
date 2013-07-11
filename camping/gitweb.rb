@@ -19,7 +19,7 @@ require 'lib/git'
 #   - grep / search function
 #   - prettify : http://projects.wh.techno-weenie.net/changesets/3030
 #   - add user model (add/remove repos)
-#   - implement http-push for authenticated users 
+#   - implement http-push for authenticated users
 #
 # author : scott chacon
 #
@@ -28,13 +28,13 @@ Camping.goes :GitWeb
 
 module GitWeb::Models
   class Repository < Base; end
-  
+
   class CreateGitWeb < V 0.1
     def self.up
       create_table :gitweb_repositories, :force => true do |t|
-        t.column :name,  :string 
-        t.column :path,  :string 
-        t.column :bare,  :boolean 
+        t.column :name,  :string
+        t.column :path,  :string
+        t.column :bare,  :boolean
       end
     end
   end
@@ -57,22 +57,22 @@ module GitWeb::Controllers
       inline_data(:css)
     end
   end
-  
+
   class JsHighlight < R '/js/highlight.js'
     def get
       @headers['Content-Type'] = 'text/javascript'
       inline_data(:js)
     end
   end
-  
-  
+
+
   class Index < R '/'
     def get
       @repos = Repository.find :all
       render :index
     end
   end
-    
+
   class Add < R '/add'
     def get
       @repo = Repository.new
@@ -87,7 +87,7 @@ module GitWeb::Controllers
       end
     end
   end
-  
+
   class RemoveRepo < R '/remove/(\d+)'
     def get repo_id
       @repo = Repository.find repo_id
@@ -96,16 +96,16 @@ module GitWeb::Controllers
       render :index
     end
   end
-  
-  
+
+
   class View < R '/view/(\d+)'
     def get repo_id
       @repo = Repository.find repo_id
-      @git = Git.bare(@repo.path)     
+      @git = Git.bare(@repo.path)
       render :view
     end
   end
-  
+
   class Fetch < R '/git/(\d+)/(.*)'
     def get repo_id, path
       @repo = Repository.find repo_id
@@ -113,54 +113,54 @@ module GitWeb::Controllers
       File.read(File.join(@git.repo.path, path))
     end
   end
-  
+
   class Commit < R '/commit/(\d+)/(\w+)'
     def get repo_id, sha
       @repo = Repository.find repo_id
-      @git = Git.bare(@repo.path)   
+      @git = Git.bare(@repo.path)
       @commit = @git.gcommit(sha)
       render :commit
     end
   end
-  
+
   class Tree < R '/tree/(\d+)/(\w+)'
     def get repo_id, sha
       @repo = Repository.find repo_id
-      @git = Git.bare(@repo.path)   
+      @git = Git.bare(@repo.path)
       @tree = @git.gtree(sha)
       render :tree
     end
   end
-  
+
   class Blob < R '/blob/(\d+)/(.*?)/(\w+)'
     def get repo_id, file, sha
       @repo = Repository.find repo_id
 
       #logger = Logger.new('/tmp/git.log')
       #logger.level = Logger::INFO
-      #@git = Git.bare(@repo.path, :log => logger)      
+      #@git = Git.bare(@repo.path, :log => logger)
 
       @git = Git.bare(@repo.path)
       @blob = @git.gblob(sha)
       @file = file
       render :blob
     end
-  end  
-  
+  end
+
   class BlobRaw < R '/blob/(\d+)/(\w+)'
      def get repo_id, sha
        @repo = Repository.find repo_id
-       @git = Git.bare(@repo.path)      
+       @git = Git.bare(@repo.path)
        @blob = @git.gblob(sha)
        @blob.contents
      end
   end
-  
+
   class Archive < R '/archive/(\d+)/(\w+)'
     def get repo_id, sha
       @repo = Repository.find repo_id
       @git = Git.bare(@repo.path)
-      
+
       file = @git.gtree(sha).archive
       @headers['Content-Type'] = 'application/zip'
       @headers["Content-Disposition"] = "attachment; filename=archive.zip"
@@ -176,7 +176,7 @@ module GitWeb::Controllers
       @git.gblob(sha).contents
     end
   end
-  
+
   class Diff < R '/diff/(\d+)/(\w+)/(\w+)'
     def get repo_id, tree1, tree2
       @repo = Repository.find repo_id
@@ -187,7 +187,7 @@ module GitWeb::Controllers
       render :diff
     end
   end
-  
+
   class Patch < R '/patch/(\d+)/(\w+)/(\w+)'
     def get repo_id, tree1, tree2
       @repo = Repository.find repo_id
@@ -195,7 +195,7 @@ module GitWeb::Controllers
       @diff = @git.diff(tree1, tree2).patch
     end
   end
-  
+
 end
 
 module GitWeb::Views
@@ -207,7 +207,7 @@ module GitWeb::Views
         script '', :type => "text/javascript", :language => "JavaScript", :src => R(JsHighlight)
       end
       style <<-END, :type => 'text/css'
-        body { font-family: verdana, arial, helvetica, sans-serif; color: #333; 
+        body { font-family: verdana, arial, helvetica, sans-serif; color: #333;
                 font-size:   13px;
                 line-height: 18px;}
 
@@ -231,7 +231,7 @@ module GitWeb::Views
   end
 
   # git repo views
-  
+
   def view
     h1 @repo.name
     h2 @repo.path
@@ -239,7 +239,7 @@ module GitWeb::Views
     gtags = @git.tags
     @tags = {}
     gtags.each { |tag| @tags[tag.sha] ||= []; @tags[tag.sha] << tag.name }
-    
+
     url = 'http:' + URL(Fetch, @repo.id, '').to_s
 
     h3 'info'
@@ -248,7 +248,7 @@ module GitWeb::Views
       tr { td 'email: '; td @git.config('user.email') }
       tr { td 'url: '; td { a url, :href => url } }
     end
-    
+
     h3 'shortlog'
     table.shortlog do
       @git.log.each do |log|
@@ -270,19 +270,19 @@ module GitWeb::Views
         end
       end
     end
-    
+
     h3 'branches'
     @git.branches.each do |branch|
       li { a branch.full, :href => R(Commit, @repo, branch.gcommit.sha) }
     end
-    
+
     h3 'tags'
     gtags.each do |tag|
       li { a tag.name, :href => R(Commit, @repo, tag.sha) }
     end
-    
+
   end
-  
+
   def commit
     a.options 'repo', :href => R(View, @repo)
     h1 @commit.name
@@ -295,7 +295,7 @@ module GitWeb::Views
       tr { td 'commit sha: '; td { code @commit.sha } }
       tr do
         td 'tree sha: '
-        td do 
+        td do
           code { a @commit.gtree.sha, :href => R(Tree, @repo, @commit.gtree.sha) }
           span.space ' '
           a 'archive', :href => R(Archive, @repo, @commit.gtree.sha)
@@ -309,7 +309,7 @@ module GitWeb::Views
             span.space ' '
             a 'diff', :href => R(Diff, @repo, p.sha, @commit.sha)
             span.space ' '
-            a 'archive', :href => R(Archive, @repo, p.gtree.sha)            
+            a 'archive', :href => R(Archive, @repo, p.gtree.sha)
             br
           end
         end
@@ -318,11 +318,11 @@ module GitWeb::Views
     h3 'commit message'
     p @commit.message
   end
-  
+
   def tree
     a.options 'repo', :href => R(View, @repo)
     h3 'tree : ' + @tree.sha
-    p { a 'archive tree', :href => R(Archive, @repo, @tree.sha) }; 
+    p { a 'archive tree', :href => R(Archive, @repo, @tree.sha) };
     table do
       @tree.children.each do |file, node|
         tr :class => cycle('odd','even') do
@@ -338,30 +338,30 @@ module GitWeb::Views
           end
         end
       end
-    end 
+    end
   end
 
   def blob
     ext = File.extname(@file).gsub('.', '')
-    
+
     case ext
       when 'rb' : classnm = 'sh_ruby'
       when 'js' : classnm = 'sh_javascript'
       when 'html' : classnm = 'sh_html'
       when 'css' : classnm = 'sh_css'
     end
-    
+
     a.options 'repo', :href => R(View, @repo)
     h3 'blob : ' + @blob.sha
     h4 @file
-    
+
     a 'download file', :href => R(Download, @repo, @file, @blob.sha)
-    
+
     div.indent { pre @blob.contents, :class => classnm }
   end
-  
+
   def diff
-    a.options 'repo', :href => R(View, @repo)    
+    a.options 'repo', :href => R(View, @repo)
     h1 "diff"
 
     p { a 'download patch file', :href => R(Patch, @repo, @tree1, @tree2) }
@@ -371,19 +371,19 @@ module GitWeb::Views
       span.space ' : '
       a @tree2, :href => R(Tree, @repo, @tree2)
     end
-    
+
     @diff.each do |file|
       h3 file.path
       div.indent { pre file.patch, :class => 'sh_diff' }
     end
   end
-  
+
   # repo management views
-  
+
   def add
     _form(@repo)
   end
-  
+
   def _form(repo)
     form(:method => 'post') do
       label 'Path', :for => 'repo_path'; br
@@ -399,7 +399,7 @@ module GitWeb::Views
       input :type => 'submit'
     end
   end
-  
+
   def index
     @repos.each do | repo |
       h1 repo.name
@@ -411,14 +411,14 @@ module GitWeb::Views
     br
     a 'add new repo', :href => R(Add)
   end
-  
+
   # convenience functions
-  
+
   def cycle(v1, v2)
     (@value == v1) ? @value = v2 : @value = v1
     @value
   end
-  
+
 end
 
 def GitWeb.create
